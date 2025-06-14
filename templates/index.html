@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASL to Text Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #a25b4b 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .video-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #videoStream {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .video-placeholder {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+                        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
+                        linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
+                        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 1.2rem;
+            border-radius: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+        }
+
+        .btn-loading {
+            pointer-events: none;
+        }
+
+        .btn-loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid transparent;
+            border-top: 2px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            height: fit-content;
+        }
+
+        .status-panel {
+            margin-bottom: 25px;
+        }
+
+        .status-panel h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .status-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .status-value {
+            font-size: 1.1rem;
+            color: #333;
+            word-break: break-word;
+        }
+
+        .sentence-display {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px dashed #667eea;
+            min-height: 120px;
+        }
+
+        .sentence-display h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .sentence-text {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            min-height: 60px;
+            border: 1px solid #ddd;
+            word-wrap: break-word;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .sentence-text.new-word {
+            background: linear-gradient(90deg, #f8f9ff, #e8f0ff);
+            border-color: #667eea;
+            transform: scale(1.02);
+        }
+
+        .char-highlight {
+            background: linear-gradient(90deg, rgba(102, 126, 234, 0.3), rgba(102, 126, 234, 0.1));
+            padding: 2px 4px;
+            border-radius: 3px;
+            animation: charGlow 0.6s ease-out;
+        }
+
+        @keyframes charGlow {
+            0% { 
+                background: rgba(102, 126, 234, 0.8);
+                transform: scale(1.1);
+            }
+            100% { 
+                background: rgba(102, 126, 234, 0.1);
+                transform: scale(1);
+            }
+        }
+
+        .prediction-status {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .prediction-progress {
+            display: inline-block;
+            width: 100px;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin-left: 10px;
+            vertical-align: middle;
+            overflow: hidden;
+        }
+
+        .prediction-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.1s ease;
+            border-radius: 2px;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .audio-player {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            border: 1px solid #667eea;
+            display: none;
+        }
+
+        .audio-player audio {
+            width: 100%;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+
+        .notification.success {
+            background: #4CAF50;
+        }
+
+        .notification.error {
+            background: #f44336;
+        }
+
+        .notification.info {
+            background: #2196F3;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                justify-content: center;
+            }
+            
+            .btn {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ASL to Text Converter</h1>
+            <p>Real-time American Sign Language Recognition</p>
+        </div>
+
+        <div class="main-content">
+            <div class="video-section">
+                <div class="video-container">
+                    <div class="video-placeholder" id="videoPlaceholder">
+                        <div>
+                            <div class="loading" id="loading">
+                                <div class="spinner"></div>
+                                <p>Starting camera...</p>
+                            </div>
+                            <p id="placeholderText">Click "Start Camera" to begin</p>
+                        </div>
+                    </div>
+                    <img id="videoStream" style="display: none;" src="" alt="Video Stream">
+                </div>
+                
+                <div class="controls">
+                    <button class="btn btn-primary" id="startBtn" onclick="startCamera()">
+                        📹 Start Camera
+                    </button>
+                    <button class="btn btn-danger" id="stopBtn" onclick="stopCamera()" style="display: none;">
+                        ⏹️ Stop Camera
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="status-panel">
+                    <h3>📊 Live Status</h3>
+                    <div class="status-item">
+                        <div class="status-label">Sign:</div>
+                        <div class="status-value prediction-status" id="currentSign">-</div>
+                        <div class="prediction-progress">
+                            <div class="prediction-progress-bar" id="progressBar"></div>
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Camera Status:</div>
+                        <div class="status-value" id="cameraStatus">Stopped</div>
+                    </div>
+                </div>
+
+                <div class="sentence-display">
+                    <h4>📝 Constructed Sentence</h4>
+                    <div class="sentence-text" id="sentenceText">Your sentence will appear here...</div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-secondary" id="speakBtn" onclick="speakSentence()">
+                        🔊 Speak Sentence
+                    </button>
+                    <button class="btn btn-warning" onclick="clearSentence()">
+                        🗑️ Clear Sentence
+                    </button>
+                    
+                    <div class="audio-player" id="audioPlayer">
+                        <audio id="audioElement" controls autoplay>
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        let cameraActive = false;
+        let updateInterval;
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        function startCamera() {
+            const loading = document.getElementById('loading');
+            const placeholderText = document.getElementById('placeholderText');
+            const startBtn = document.getElementById('startBtn');
+            
+            loading.style.display = 'block';
+            placeholderText.style.display = 'none';
+            startBtn.disabled = true;
+
+            fetch('/start_camera', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                cameraActive = true;
+                document.getElementById('videoStream').src = '/video_feed';
+                document.getElementById('videoStream').style.display = 'block';
+                document.getElementById('videoPlaceholder').style.display = 'none';
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-block';
+                document.getElementById('cameraStatus').textContent = 'Active';
+                
+                // Start updating sentence display
+                updateInterval = setInterval(updateSentence, 100);
+                
+                showNotification('Camera started successfully!');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Failed to start camera', 'error');
+                loading.style.display = 'none';
+                placeholderText.style.display = 'block';
+                startBtn.disabled = false;
+            });
+        }
+
+        function stopCamera() {
+            fetch('/stop_camera', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                cameraActive = false;
+                document.getElementById('videoStream').style.display = 'none';
+                document.getElementById('videoPlaceholder').style.display = 'flex';
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('placeholderText').style.display = 'block';
+                document.getElementById('startBtn').style.display = 'inline-block';
+                document.getElementById('stopBtn').style.display = 'none';
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('cameraStatus').textContent = 'Stopped';
+                document.getElementById('currentSign').textContent = '-';
+                
+                // Hide audio player
+                document.getElementById('audioPlayer').style.display = 'none';
+                
+                // Stop updating
+                if (updateInterval) {
+                    clearInterval(updateInterval);
+                }
+                
+                showNotification('Camera stopped');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Failed to stop camera', 'error');
+            });
+        }
+
+        let lastSentence = '';
+
+        function updateSentence() {
+            if (!cameraActive) return;
+            
+            fetch('/get_sentence')
+                .then(response => response.json())
+                .then(data => {
+                    const sentenceElement = document.getElementById('sentenceText');
+                    const currentSignElement = document.getElementById('currentSign');
+                    const progressBar = document.getElementById('progressBar');
+                    
+                    // Update sign display
+                    currentSignElement.textContent = data.current_sign || 'nothing';
+                    
+                    // Update progress bar
+                    const percentage = (data.prediction_count / data.threshold_frames) * 100;
+                    progressBar.style.width = percentage + '%';
+                    
+                    // Handle sentence updates with dynamic highlighting
+                    const currentSentence = data.sentence || 'Your sentence will appear here...';
+                    
+                    if (currentSentence !== lastSentence) {
+                        // Check if sentence grew (new character/word added)
+                        if (currentSentence.length > lastSentence.length && lastSentence !== 'Your sentence will appear here...') {
+                            // Highlight new characters
+                            const newPart = currentSentence.slice(lastSentence.length);
+                            const oldPart = lastSentence;
+                            
+                            // Create highlighted version
+                            sentenceElement.innerHTML = oldPart + `<span class="char-highlight">${newPart}</span>`;
+                            
+                            // Add sentence glow effect
+                            sentenceElement.classList.add('new-word');
+                            
+                            // Remove highlight after animation
+                            setTimeout(() => {
+                                sentenceElement.textContent = currentSentence;
+                                sentenceElement.classList.remove('new-word');
+                            }, 600);
+                        } else {
+                            // Direct update for deletions or first load
+                            sentenceElement.textContent = currentSentence;
+                        }
+                        
+                        lastSentence = currentSentence;
+                    }
+                })
+                .catch(error => console.error('Error updating sentence:', error));
+        }
+
+        function clearSentence() {
+            fetch('/clear_sentence', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('sentenceText').textContent = 'Your sentence will appear here...';
+                document.getElementById('audioPlayer').style.display = 'none';
+                showNotification('Sentence cleared!');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Failed to clear sentence', 'error');
+            });
+        }
+
+        function speakSentence() {
+            const speakBtn = document.getElementById('speakBtn');
+            const audioPlayer = document.getElementById('audioPlayer');
+            const audioElement = document.getElementById('audioElement');
+            
+            // Show loading state
+            speakBtn.classList.add('btn-loading');
+            speakBtn.disabled = true;
+            speakBtn.textContent = 'Generating...';
+            
+            showNotification('Generating speech...', 'info');
+
+            fetch('/speak_sentence', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Set audio source and show player
+                    audioElement.src = data.audio_url;
+                    audioPlayer.style.display = 'block';
+                    
+                    // Try to play audio
+                    audioElement.play().then(() => {
+                        showNotification('Playing speech...', 'success');
+                    }).catch(error => {
+                        console.log('Autoplay prevented, user can click play manually');
+                        showNotification('Audio generated! Click play to listen.', 'success');
+                    });
+                } else {
+                    showNotification(data.message || 'Failed to generate speech', 'error');
+                    audioPlayer.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Failed to generate speech', 'error');
+                audioPlayer.style.display = 'none';
+            })
+            .finally(() => {
+                // Reset button state
+                speakBtn.classList.remove('btn-loading');
+                speakBtn.disabled = false;
+                speakBtn.textContent = '🔊 Speak Sentence';
+            });
+        }
+
+        // Handle audio events
+        document.getElementById('audioElement').addEventListener('ended', function() {
+            showNotification('Playback completed', 'info');
+        });
+
+        document.getElementById('audioElement').addEventListener('error', function() {
+            showNotification('Audio playback error', 'error');
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'c' || event.key === 'C') {
+                clearSentence();
+            } else if (event.key === 's' || event.key === 'S') {
+                speakSentence();
+            } else if (event.key === ' ') {
+                event.preventDefault();
+                if (cameraActive) {
+                    stopCamera();
+                } else {
+                    startCamera();
+                }
+            }
+        });
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && cameraActive) {
+                // Optionally pause when tab is not visible
+            }
+        });
+    </script>
+</body>
+</html>
