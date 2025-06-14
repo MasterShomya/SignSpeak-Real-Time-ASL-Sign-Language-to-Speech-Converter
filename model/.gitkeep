@@ -1,1 +1,2 @@
-
+Keep this folder intact
+On running 'app.py' both the 'asl_model.joblib' and 'label_encoder.joblib' will be downloaded from drive and saved here to be used later.
