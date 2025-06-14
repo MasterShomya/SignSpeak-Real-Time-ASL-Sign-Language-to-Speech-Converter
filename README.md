@@ -88,7 +88,7 @@ The model used is a traditional machine learning classifier trained on 63 featur
 
 | Classification Report Sample |
 |------------------------------|
-| ![]() |
+| ![](screenshots/Screenshot from 2025-06-14 20-19-39.png) |
 
 The model is saved as `asl_model.joblib` with a `label_encoder.joblib`. Both are downloaded automatically via `gdown` on first app run.
 
