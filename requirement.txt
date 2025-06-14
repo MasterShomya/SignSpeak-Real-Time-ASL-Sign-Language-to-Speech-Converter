@@ -1,0 +1,7 @@
+Flask
+opencv-python
+mediapipe
+numpy
+scikit-learn
+joblib
+gtts
