@@ -11,6 +11,7 @@ from gtts import gTTS
 import uuid
 from datetime import datetime, timedelta
 import glob
+import gdown
 
 app = Flask(__name__)
 
@@ -27,14 +28,25 @@ AUDIO_DIR = os.path.join('static', 'audio')
 if not os.path.exists(AUDIO_DIR):
     os.makedirs(AUDIO_DIR)
 
-# Load model and encoder (you'll need to place these files in the project directory)
-try:
-    model = joblib.load("model/asl_model.joblib")
-    le = joblib.load("model/label_encoder.joblib")
-    model_loaded = True
-except FileNotFoundError:
-    print("Model files not found. Please ensure asl_model.joblib and label_encoder.joblib are in the project directory.")
-    model_loaded = False
+model_path = "model/asl_model.joblib"
+encoder_path = "model/label_encoder.joblib"
+
+# File IDs from Google Drive (not full URLs!)
+model_file_id = "1oZeBgnRUqLYe5IaYG6NIokCEuqz07Ru2"
+encoder_file_id = "13oBSsI927KltAI7z0bpz3hgCTrUAQap-"
+
+# Download if missing
+if not os.path.exists(model_path):
+    print("Downloading ASL model...")
+    gdown.download(f"https://drive.google.com/uc?id={model_file_id}", model_path, quiet=False)
+
+if not os.path.exists(encoder_path):
+    print("Downloading LabelEncoder...")
+    gdown.download(f"https://drive.google.com/uc?id={encoder_file_id}", encoder_path, quiet=False)
+
+# Load the model and encoder
+model = joblib.load(model_path)
+le = joblib.load(encoder_path)
 
 # Setup MediaPipe
 mp_hands = mp.solutions.hands
